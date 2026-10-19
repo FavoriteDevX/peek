@@ -1,0 +1,7 @@
+{
+  "name": "peek-js",
+  "version": "1.0.0",
+  "description": "Ultra-lightweight context hovering element previews in pure vanilla javascript.",
+  "main": "peek.js",
+  "type": "module"
+}
