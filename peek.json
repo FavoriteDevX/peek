@@ -1,0 +1,84 @@
+class Peek {
+  constructor(options = {}) {
+    this.delay = options.delay || 300;
+    this.activeViewport = null;
+    this.timer = null;
+    this.init();
+  }
+
+  init() {
+    const anchors = document.querySelectorAll('[data-peek-src]');
+    anchors.forEach(el => {
+      el.addEventListener('mouseenter', (e) => this.queue(e));
+      el.addEventListener('mouseleave', () => this.clear());
+    });
+    
+    // Global style inject to maintain 0-dependency file state
+    if (!document.getElementById('peek-core-style')) {
+      const style = document.createElement('style');
+      style.id = 'peek-core-style';
+      style.textContent = `
+        .peek-container {
+          position: absolute; z-index: 9999; pointer-events: none;
+          background: #1e293b; border: 1px solid #475569; border-radius: 6px;
+          box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); opacity: 0;
+          transform: translateY(10px) scale(0.95); transition: opacity .15s ease, transform .15s ease;
+          overflow: hidden; max-width: 320px; max-height: 200px;
+        }
+        .peek-container.visible { opacity: 1; transform: translateY(0) scale(1); }
+        .peek-container img, .peek-container video { width: 100%; height: auto; display: block; }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  queue(event) {
+    this.clear();
+    const target = event.currentTarget;
+    const mediaSrc = target.getAttribute('data-peek-src');
+    
+    this.timer = setTimeout(() => {
+      this.create(target, mediaSrc);
+    }, this.delay);
+  }
+
+  create(target, src) {
+    this.destroyActive();
+    
+    const container = document.createElement('div');
+    container.className = 'peek-container';
+    
+    const isVideo = src.endsWith('.mp4') || src.endsWith('.webm');
+    const media = document.createElement(isVideo ? 'video' : 'img');
+    media.src = src;
+    if (isVideo) { media.autoplay = true; media.muted = true; media.loop = true; }
+    
+    container.appendChild(media);
+    document.body.appendChild(container);
+    
+    const targetRect = target.getBoundingClientRect();
+    const scrollY = window.scrollY;
+    
+    container.style.top = `${targetRect.top + scrollY - container.offsetHeight - 8}px`;
+    container.style.left = `${targetRect.left + (targetRect.width / 2) - (container.offsetWidth / 2)}px`;
+    
+    requestAnimationFrame(() => container.classList.add('visible'));
+    this.activeViewport = container;
+  }
+
+  clear() {
+    if (this.timer) clearTimeout(this.timer);
+    this.destroyActive();
+  }
+
+  destroyActive() {
+    if (this.activeViewport) {
+      const el = this.activeViewport;
+      el.classList.remove('visible');
+      setTimeout(() => el.remove(), 150);
+      this.activeViewport = null;
+    }
+  }
+}
+
+export default Peek;
